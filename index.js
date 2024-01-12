@@ -32,22 +32,23 @@ async function viewDepartments() {
   }
 }
 
-
 async function viewRoles() {
   try {
-    const results = await sequelize.query('SELECT review, id, department_name, role_salary FROM Role');
+    await viewDepartments(); // Wait for the previous query to complete
+    const results = await sequelize.query('SELECT role_name, id, department_id, role_salary FROM Roles');
     console.log(results);
   } catch (error) {
-    console.error('Error fetching departments:', error);
+    console.error('Error fetching roles:', error);
   }
 }
 
 async function viewEmployees() {
   try {
-    const results = await sequelize.query('SELECT id, first_name, last_name, title, department, employee_salary, manager FROM Employee');
+    await viewRoles(); // Wait for the previous query to complete
+    const results = await sequelize.query('SELECT id, first_name, last_name, role_name, department_id, employee_salary, manager_name FROM Employees');
     console.log(results);
   } catch (error) {
-    console.error('Error fetching departments:', error);
+    console.error('Error fetching employees:', error);
   }
 }
 
@@ -91,7 +92,7 @@ async function addRole() {
       },
     ]);
 
-    await sequelize.query('INSERT INTO Role (title, salary, department_id) VALUES (?, ?, ?)', {
+    await sequelize.query('INSERT INTO Roles (title, salary, department_id) VALUES (?, ?, ?)', {
       replacements: [role.title, role.salary, role.department_id],
     });
 
