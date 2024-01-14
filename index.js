@@ -34,7 +34,6 @@ async function viewDepartments() {
 
 async function viewRoles() {
   try {
-    await viewDepartments(); // Wait for the previous query to complete
     const results = await sequelize.query('SELECT role_name, id, department_id, role_salary FROM Roles');
     console.log(results);
   } catch (error) {
@@ -77,12 +76,12 @@ async function addRole() {
     const role = await inquirer.prompt([
       {
         type: 'input',
-        name: 'title',
+        name: 'role_name',
         message: 'Enter the role title:',
       },
       {
         type: 'input',
-        name: 'salary',
+        name: 'role_salary',
         message: 'Enter the role salary:',
       },
       {
@@ -92,8 +91,19 @@ async function addRole() {
       },
     ]);
 
-    await sequelize.query('INSERT INTO Roles (title, salary, department_id) VALUES (?, ?, ?)', {
-      replacements: [role.title, role.salary, role.department_id],
+    // Check if the department_id exists in the Department table
+    const departmentExists = await sequelize.query('SELECT id FROM Department WHERE id = ?', {
+      replacements: [role.department_id],
+    });
+
+    if (departmentExists[0].length === 0) {
+      console.error('Department with the specified ID does not exist.');
+      return;
+    }
+
+    // Insert the role using Sequelize
+    await sequelize.query('INSERT INTO Roles (role_name, role_salary, department_id) VALUES (?, ?, ?)', {
+      replacements: [role.role_name, role.role_salary, role.department_id],
     });
 
     console.log('Role added successfully!');
@@ -117,17 +127,38 @@ async function addEmployee() {
       },
       {
         type: 'input',
-        name: 'role_id',
-        message: 'Enter the employee\'s role ID:',
+        name: 'role_name',
+        message: 'Enter the employee\'s role name:',
       },
       {
         type: 'input',
         name: 'manager_id',
-        message: 'Enter the employee\'s manager ID:',
+        message: 'Enter the employee\'s manager:',
       },
     ]);
 
-    await sequelize.query('INSERT INTO Employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', {
+    // Check if the role_id exists in the Roles table
+    const roleExists = await sequelize.query('SELECT role_name FROM Roles WHERE id = ?', {
+      replacements: [employee.role_id],
+    });
+
+    if (roleExists[0].length === 0) {
+      console.error('Role with the specified ID does not exist.');
+      return;
+    }
+
+    // Check if the manager_id exists in the Employees table
+    const managerExists = await sequelize.query('SELECT id FROM Employees WHERE id = ?', {
+      replacements: [employee.manager_id],
+    });
+
+    if (managerExists[0].length === 0) {
+      console.error('Manager with the specified ID does not exist.');
+      return;
+    }
+
+    // Insert the employee using Sequelize
+    await sequelize.query('INSERT INTO Employees (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', {
       replacements: [employee.first_name, employee.last_name, employee.role_id, employee.manager_id],
     });
 
@@ -152,7 +183,7 @@ async function updateEmployeeRole() {
       },
     ]);
 
-    await sequelize.query('UPDATE Employee SET role_id = ? WHERE id = ?', {
+    await sequelize.query('UPDATE Employees SET role_id = ? WHERE id = ?', {
       replacements: [employeeUpdate.new_role_id, employeeUpdate.employee_id],
     });
 

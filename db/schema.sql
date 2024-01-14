@@ -12,7 +12,7 @@ CREATE TABLE roles (
   role_name VARCHAR(100) NOT NULL,
   role_salary DECIMAL(10,2) NOT NULL,
   department_id INT,
-  INDEX idx_role_name (role_name), -- Add an index on role_name
+  INDEX idx_role_name (role_name),
   FOREIGN KEY (department_id) REFERENCES department(id) ON DELETE SET NULL
 );
 
@@ -20,7 +20,7 @@ CREATE TABLE employees (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   first_name VARCHAR(30) NOT NULL,
   last_name VARCHAR(30) NOT NULL,
-  employee_salary DECIMAL(10,2) NOT NULL,
+  employee_salary DECIMAL(10,2),
   manager_name VARCHAR(30),
   role_name VARCHAR(100),
   department_id INT,
