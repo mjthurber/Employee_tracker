@@ -3,15 +3,14 @@ const sequelize = require('./config/connection');
 const inquirer = require('inquirer');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+// const PORT = process.env.PORT || 3001;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
 
-sequelize.sync().then(() => {
-  app.listen(PORT, () => console.log('Now listening'));
-});
-
+// sequelize.sync().then(() => {
+//   app.listen(PORT, () => console.log('Now listening'));
+// });
 
 const actions = {
   'View all departments': viewDepartments,
@@ -22,6 +21,48 @@ const actions = {
   'Add an employee': addEmployee,
   'Update an employee role': updateEmployeeRole,
 };
+
+inquirer
+  .prompt([
+    {
+      type: 'list',
+      name: 'action',
+      message: 'What would you like to do?',
+      choices: Object.keys(actions),
+    },
+  ])
+  .then((answers) => {
+    const selectedAction = answers.action;
+
+    switch (selectedAction) {
+      case 'View all departments':
+        viewDepartments();
+        break;
+      case 'View all roles':
+        viewRoles();
+        break;
+      case 'View all employees':
+        viewEmployees();
+        break;
+      case 'Add a department':
+        addDepartment();
+        break;
+      case 'Add a role':
+        addRole();
+        break;
+      case 'Add an employee':
+        addEmployee();
+        break;
+      case 'Update an employee role':
+        updateEmployeeRole();
+        break;
+      default:
+        console.log('Invalid action selected');
+    }
+  });
+
+
+
 
 async function viewDepartments() {
   try {
@@ -34,7 +75,7 @@ async function viewDepartments() {
 
 async function viewRoles() {
   try {
-    const results = await sequelize.query('SELECT role_name, id, department_id, role_salary FROM Roles');
+    const results = await sequelize.query('SELECT title, id, department_id, role_salary FROM Roles');
     console.log(results);
   } catch (error) {
     console.error('Error fetching roles:', error);
@@ -43,8 +84,8 @@ async function viewRoles() {
 
 async function viewEmployees() {
   try {
-    await viewRoles(); // Wait for the previous query to complete
-    const results = await sequelize.query('SELECT id, first_name, last_name, role_name, department_id, employee_salary, manager_name FROM Employees');
+    //await viewRoles(); // Wait for the previous query to complete
+    const results = await sequelize.query('SELECT id, first_name, last_name, role_id, department_id, employee_salary, manager_id FROM Employees');
     console.log(results);
   } catch (error) {
     console.error('Error fetching employees:', error);
@@ -76,7 +117,7 @@ async function addRole() {
     const role = await inquirer.prompt([
       {
         type: 'input',
-        name: 'role_name',
+        name: 'title',
         message: 'Enter the role title:',
       },
       {
@@ -102,8 +143,8 @@ async function addRole() {
     }
 
     // Insert the role using Sequelize
-    await sequelize.query('INSERT INTO Roles (role_name, role_salary, department_id) VALUES (?, ?, ?)', {
-      replacements: [role.role_name, role.role_salary, role.department_id],
+    await sequelize.query('INSERT INTO Roles (title, role_salary, department_id) VALUES (?, ?, ?)', {
+      replacements: [role.title, role.role_salary, role.department_id],
     });
 
     console.log('Role added successfully!');
@@ -128,18 +169,18 @@ async function addEmployee() {
       {
         type: 'input',
         name: 'role_name',
-        message: 'Enter the employee\'s role name:',
+        message: 'Enter the employee\'s role id:',
       },
       {
         type: 'input',
-        name: 'manager_id',
-        message: 'Enter the employee\'s manager:',
+        name: 'manager_name',
+        message: 'Enter the employee\'s manager id:',
       },
     ]);
 
     // Check if the role_id exists in the Roles table
-    const roleExists = await sequelize.query('SELECT role_name FROM Roles WHERE id = ?', {
-      replacements: [employee.role_id],
+    const roleExists = await sequelize.query('SELECT id FROM Roles WHERE id = ?', {
+      replacements: [employee.role_name],
     });
 
     if (roleExists[0].length === 0) {
@@ -148,8 +189,8 @@ async function addEmployee() {
     }
 
     // Check if the manager_id exists in the Employees table
-    const managerExists = await sequelize.query('SELECT id FROM Employees WHERE id = ?', {
-      replacements: [employee.manager_id],
+    const managerExists = await sequelize.query('SELECT manager_id FROM Employees WHERE manager_id = ?', {
+      replacements: [employee.manager_name],
     });
 
     if (managerExists[0].length === 0) {
@@ -158,9 +199,17 @@ async function addEmployee() {
     }
 
     // Insert the employee using Sequelize
-    await sequelize.query('INSERT INTO Employees (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', {
-      replacements: [employee.first_name, employee.last_name, employee.role_id, employee.manager_id],
+    const test = await sequelize.query('INSERT INTO Employees (first_name, last_name, role_id, manager_id) VALUES (:first_name, :last_name, :role_id, :manager_id)', {
+      replacements: {
+        first_name: employee.first_name,
+        last_name: employee.last_name,
+        role_id: employee.role_name,
+        manager_id: employee.manager_name,
+      }
     });
+    
+      console.log(test);
+    
 
     console.log('Employee added successfully!');
   } catch (error) {
@@ -192,17 +241,3 @@ async function updateEmployeeRole() {
     console.error('Error updating employee role:', error);
   }
 }
-
-inquirer
-  .prompt([
-    {
-      type: 'list',
-      name: 'action',
-      message: 'What would you like to do?',
-      choices: Object.keys(actions),
-    },
-  ])
-  .then((answers) => {
-    const selectedAction = answers.action;
-    actions[selectedAction]();
-  });
